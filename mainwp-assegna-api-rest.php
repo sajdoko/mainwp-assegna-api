@@ -61,6 +61,11 @@ class MainWp_Assegna_Api_Rest {
         'callback' => 'site-apply-branding',
       ),
       array(
+        'route' => 'site',
+        'method' => 'GET',
+        'callback' => 'site-fix-security-issues',
+      ),
+      array(
         'route' => 'sites',
         'method' => 'POST',
         'callback' => 'sites-execute-snippet',
@@ -136,7 +141,7 @@ class MainWp_Assegna_Api_Rest {
    *
    */
   public function get_childkey() {
-    $childEnabled = apply_filters('mainwp-extension-enabled-check', __FILE__);
+    $childEnabled = apply_filters('mainwp_extension_enabled_check', __FILE__);
     if (!$childEnabled) {
       return false;
     }
@@ -166,7 +171,7 @@ class MainWp_Assegna_Api_Rest {
       if ($site_id) {
         do_action('mainwp_applypluginsettings_mainwp-branding-extension', $site_id);
       } else {
-        $resp_data = array('ERROR' => __('Site id is not valid!', 'mainwp'));
+        $resp_data = array('ERROR' => 'Site id is not valid!');
 
         $response = new \WP_REST_Response($resp_data);
         $response->set_status(400);
@@ -210,14 +215,14 @@ class MainWp_Assegna_Api_Rest {
         $resp_messages = array();
 
         if (empty($sites_ids)) {
-          $resp_data = array('ERROR' => __('Empty site ids!', 'mainwp'));
+          $resp_data = array('ERROR' => 'Empty site ids!');
           $response = new \WP_REST_Response($resp_data);
           $response->set_status(400);
           return $response;
         }
 
-        if (!in_array($sites_action , $allowed_actions)) {
-          $resp_data = array('ERROR' => __('Not valid action!', 'mainwp'));
+        if (!in_array($sites_action, $allowed_actions)) {
+          $resp_data = array('ERROR' => 'Not valid action!');
           $response = new \WP_REST_Response($resp_data);
           $response->set_status(400);
           return $response;
@@ -231,7 +236,7 @@ class MainWp_Assegna_Api_Rest {
           'action' => $sites_action,
           'type' => 'R',
           'slug' => 'executeSnippet',
-          'code' => $sites_snippet
+          'code' => $sites_snippet,
         );
 
         foreach ($sites_ids as $site_id) {
@@ -242,7 +247,7 @@ class MainWp_Assegna_Api_Rest {
             $result = ($information['result']) ?? $information['result'];
             array_push($resp_messages, $result);
           } else {
-            array_push($resp_messages,"The action: $sites_action did not run on child site with id: $site_id");
+            array_push($resp_messages, "The action: $sites_action did not run on child site with id: $site_id");
           }
           array_push($resp_messages, $information);
 
@@ -253,10 +258,9 @@ class MainWp_Assegna_Api_Rest {
         $response->set_status(200);
         return $response;
 
-
       } else {
 
-        $resp_data = array('ERROR' => __('Could not get child key!', 'mainwp'));
+        $resp_data = array('ERROR' => 'Could not get child key!');
         $response = new \WP_REST_Response($resp_data);
         $response->set_status(400);
 
@@ -266,6 +270,65 @@ class MainWp_Assegna_Api_Rest {
     } else {
       // throw common error.
       $response = $this->mainwp_authentication_error();
+    }
+
+    return $response;
+  }
+
+  /**
+   * Method mainwp_rest_assegna_api_site_fix_security_issues_callback()
+   *
+   * Callback function for managing the response to API requests made for the endpoint: site-fix-security-issues
+   * Can be accessed via a request like: https://yourdomain.com/wp-json/mainwp/v1/site/site-fix-security-issues
+   * API Method: GET
+   *
+   * @param array $request The request made in the API call which includes all parameters.
+   *
+   * @return object $response An object that contains the return data and status of the API request.
+   */
+  public function mainwp_rest_assegna_api_site_fix_security_issues_callback($request) {
+
+    // first validate the request.
+    if ($this->mainwp_validate_request($request)) {
+
+      $site_id = filter_var($request['site_id'], FILTER_VALIDATE_INT);
+
+      if (is_numeric($site_id)) {
+
+        $childKey = $this->get_childkey();
+
+        if ($childKey) {
+
+          $data = array(
+            'id' => $site_id,
+            'feature' => 'all',
+          );
+          $information = apply_filters('mainwp_fetchurlauthed', __FILE__, $childKey, $site_id, 'securityFix', $data);
+
+          $response = new \WP_REST_Response(array('SUCCESS' => $information));
+          $response->set_status(200);
+        } else {
+
+          $resp_data = array('ERROR' => 'Could not get child key!');
+          $response = new \WP_REST_Response($resp_data);
+          $response->set_status(400);
+
+          return $response;
+        }
+
+      } else {
+        $resp_data = array('ERROR' => 'Site id is not valid!');
+
+        $response = new \WP_REST_Response($resp_data);
+        $response->set_status(400);
+
+        return $response;
+      }
+
+    } else {
+      // throw common error.
+      $response = $this->mainwp_authentication_error();
+      $response->set_status(400);
     }
 
     return $response;
