@@ -70,6 +70,11 @@ class MainWp_Assegna_Api_Rest {
         'method' => 'POST',
         'callback' => 'sites-execute-snippet',
       ),
+      array(
+        'route' => 'sites',
+        'method' => 'POST',
+        'callback' => 'sites-apply-branding',
+      ),
     );
 
     // loop through the endpoints.
@@ -155,7 +160,7 @@ class MainWp_Assegna_Api_Rest {
    *
    * Callback function for managing the response to API requests made for the endpoint: site-apply-branding
    * Can be accessed via a request like: https://yourdomain.com/wp-json/mainwp/v1/site/site-apply-branding
-   * API Method: GET
+   * API Method: POST
    *
    * @param array $request The request made in the API call which includes all parameters.
    *
@@ -329,6 +334,48 @@ class MainWp_Assegna_Api_Rest {
       // throw common error.
       $response = $this->mainwp_authentication_error();
       $response->set_status(400);
+    }
+
+    return $response;
+  }
+
+  /**
+   * Method mainwp_rest_assegna_api_sites_apply_branding_callback()
+   *
+   * Callback function for managing the response to API requests made for the endpoint: sites-apply-branding
+   * Can be accessed via a request like: https://yourdomain.com/wp-json/mainwp/v1/sites/sites-apply-branding
+   * API Method: POST
+   *
+   * @param array $request The request made in the API call which includes all parameters.
+   *
+   * @return object $response An object that contains the return data and status of the API request.
+   */
+  public function mainwp_rest_assegna_api_sites_apply_branding_callback($request) {
+
+    // first validate the request.
+    if ($this->mainwp_validate_request($request)) {
+
+      $sites_ids = (isset($request['sites_ids']) && is_array($request['sites_ids'])) ? (array) $request['sites_ids'] : array();
+      if (empty($sites_ids)) {
+        $resp_data = array('ERROR' => 'Empty sites ids!');
+        $response = new \WP_REST_Response($resp_data);
+        $response->set_status(400);
+        return $response;
+      }
+
+      foreach ($sites_ids as $site_id) {
+        $site_id = filter_var($site_id, FILTER_VALIDATE_INT);
+        do_action('mainwp_applypluginsettings_mainwp-branding-extension', $site_id);
+      }
+
+      $resp_data = array('SUCCESS' => 'Branding appyed sussesfully on sites!');
+      $response = new \WP_REST_Response($resp_data);
+      $response->set_status(200);
+      return $response;
+
+    } else {
+      // throw common error.
+      $response = $this->mainwp_authentication_error();
     }
 
     return $response;
