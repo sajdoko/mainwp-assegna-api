@@ -363,12 +363,18 @@ class MainWp_Assegna_Api_Rest {
         return $response;
       }
 
+      $resp_messages = array();
+
       foreach ($sites_ids as $site_id) {
         $site_id = filter_var($site_id, FILTER_VALIDATE_INT);
-        do_action('mainwp_applypluginsettings_mainwp-branding-extension', $site_id);
+        try {
+          do_action('mainwp_applypluginsettings_mainwp-branding-extension', $site_id);
+        } catch (\Throwable $th) {
+          array_push($resp_messages, $th->getMessage());
+        }
       }
 
-      $resp_data = array('SUCCESS' => 'Branding appyed sussesfully on sites!');
+      $resp_data = array('SUCCESS' => 'Branding applyed sussesfully on sites!', 'MESSAGES' => $resp_messages);
       $response = new \WP_REST_Response($resp_data);
       $response->set_status(200);
       return $response;
