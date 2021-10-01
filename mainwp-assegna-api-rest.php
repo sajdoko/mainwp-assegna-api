@@ -57,7 +57,7 @@ class MainWp_Assegna_Api_Rest {
     $endpoints = array(
       array(
         'route' => 'site',
-        'method' => 'GET',
+        'method' => 'POST',
         'callback' => 'site-apply-branding',
       ),
       array(
@@ -371,6 +371,7 @@ class MainWp_Assegna_Api_Rest {
           do_action('mainwp_applypluginsettings_mainwp-branding-extension', $site_id);
         } catch (\Throwable $th) {
           array_push($resp_messages, $th->getMessage());
+          continue;
         }
       }
 
