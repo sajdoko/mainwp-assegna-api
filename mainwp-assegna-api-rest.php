@@ -25,6 +25,26 @@ class MainWp_Assegna_Api_Rest {
   }
 
   /**
+   * Check to see whether activated or not.
+   *
+   */
+  public function is_api_key_enabled() {
+    $all_keys = get_option('mainwp_rest_api_keys', false);
+
+    if (!is_array($all_keys)) {
+      return false;
+    }
+
+    foreach ($all_keys as $item) {
+      if (!empty($item['cs']) && !empty($item['enabled'])) {
+        return true; // one key enabled, enabled the REST API.
+      }
+    }
+
+    return false; // all keys disabled.
+  }
+
+  /**
    * Method init()
    *
    * Adds an action to generate API credentials.
@@ -32,16 +52,11 @@ class MainWp_Assegna_Api_Rest {
    */
   public function init() {
     // only activate the api if enabled in the plugin settings.
-    if (get_option('mainwp_enable_rest_api')) {
-      // check to see whether activated or not.
-      $activated = get_option('mainwp_enable_rest_api');
-
-      if ($activated) {
-        // run API.
-        add_action('rest_api_init', array(&$this, 'mainwp_assegna_api_register_routes'));
-      } else {
-        wp_die('run API');
-      }
+    if ($this->is_api_key_enabled()) {
+      // run API.
+      add_action('rest_api_init', array(&$this, 'mainwp_assegna_api_register_routes'));
+    } else {
+      wp_die('run API');
     }
   }
 
@@ -92,7 +107,6 @@ class MainWp_Assegna_Api_Rest {
         )
       );
     }
-
   }
 
   /**
@@ -106,22 +120,47 @@ class MainWp_Assegna_Api_Rest {
    */
   public function mainwp_validate_request($request) {
 
-    // users entered consumer key and secret.
-    $consumer_key = $request['consumer_key'];
-    $consumer_secret = $request['consumer_secret'];
+    $consumer_key    = null;
+    $consumer_secret = null;
+
+    if (!empty($request['consumer_key']) && !empty($request['consumer_secret'])) {
+      // users entered consumer key and secret.
+      $consumer_key    = $request['consumer_key'];
+      $consumer_secret = $request['consumer_secret'];
+    } else {
+      $headers = apache_request_headers();
+
+      if (isset($headers['x-api-key'])) {
+        $header_keys = $headers['x-api-key'];
+        $api_keys    = json_decode($header_keys, true);
+        if (is_array($api_keys) && isset($api_keys['consumer_key'])) {
+          // users entered consumer key and secret.
+          $consumer_key    = $api_keys['consumer_key'];
+          $consumer_secret = $api_keys['consumer_secret'];
+        }
+      }
+    }
 
     // data stored in database.
-    $consumer_key_option = get_option('mainwp_rest_api_consumer_key');
-    $consumer_secret_option = get_option('mainwp_rest_api_consumer_secret');
-
-    if (wp_check_password($consumer_key, $consumer_key_option) && wp_check_password($consumer_secret, $consumer_secret_option)) {
-      if (!defined('MAINWP_REST_API')) {
-        define('MAINWP_REST_API', true);
-      }
-      return true;
-    } else {
-      return false;
+    $all_keys = get_option('mainwp_rest_api_keys', false);
+    if (!is_array($all_keys)) {
+      $all_keys = array();
     }
+
+    if (isset($all_keys[$consumer_key])) {
+      $existed_key = $all_keys[$consumer_key];
+      if (is_array($existed_key) && isset($existed_key['cs'])) {
+        $consumer_secret_key = $existed_key['cs'];
+        $enabled             = isset($existed_key['enabled']) && !empty($existed_key['enabled']) ? true : false;
+        if ($enabled && wp_check_password($consumer_secret, $consumer_secret_key)) {
+          if (!defined('MAINWP_REST_API')) {
+            define('MAINWP_REST_API', true);
+          }
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   /**
@@ -133,7 +172,9 @@ class MainWp_Assegna_Api_Rest {
    */
   public function mainwp_authentication_error() {
 
-    $resp_data = array('ERROR' => __('Incorrect or missing consumer key and/or secret. If the issue persists please reset your authentication details from the MainWP > Settings > REST API page, on your MainWP Dashboard site.', 'mainwp'));
+    $resp_data = array(
+      'ERROR' => __('Incorrect or missing consumer key and/or secret. If the issue persists please reset your authentication details from the MainWP > Settings > REST API page, on your MainWP Dashboard site.', 'mainwp')
+    );
 
     $response = new \WP_REST_Response($resp_data);
     $response->set_status(401);
@@ -183,7 +224,6 @@ class MainWp_Assegna_Api_Rest {
 
         return $response;
       }
-
     } else {
       // throw common error.
       $response = $this->mainwp_authentication_error();
@@ -255,14 +295,12 @@ class MainWp_Assegna_Api_Rest {
             array_push($resp_messages, "The action: $sites_action did not run on child site with id: $site_id");
           }
           array_push($resp_messages, $information);
-
         }
 
         $resp_data = array('SUCCESS' => $resp_messages);
         $response = new \WP_REST_Response($resp_data);
         $response->set_status(200);
         return $response;
-
       } else {
 
         $resp_data = array('ERROR' => 'Could not get child key!');
@@ -271,7 +309,6 @@ class MainWp_Assegna_Api_Rest {
 
         return $response;
       }
-
     } else {
       // throw common error.
       $response = $this->mainwp_authentication_error();
@@ -320,7 +357,6 @@ class MainWp_Assegna_Api_Rest {
 
           return $response;
         }
-
       } else {
         $resp_data = array('ERROR' => 'Site id is not valid!');
 
@@ -329,11 +365,9 @@ class MainWp_Assegna_Api_Rest {
 
         return $response;
       }
-
     } else {
       // throw common error.
       $response = $this->mainwp_authentication_error();
-      $response->set_status(400);
     }
 
     return $response;
@@ -379,7 +413,6 @@ class MainWp_Assegna_Api_Rest {
       $response = new \WP_REST_Response($resp_data);
       $response->set_status(200);
       return $response;
-
     } else {
       // throw common error.
       $response = $this->mainwp_authentication_error();
@@ -387,5 +420,4 @@ class MainWp_Assegna_Api_Rest {
 
     return $response;
   }
-
 }

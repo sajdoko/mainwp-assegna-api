@@ -29,7 +29,7 @@ require_once plugin_dir_path(__FILE__) . 'mainwp-assegna-api-extension.php';
 require_once plugin_dir_path(__FILE__) . 'mainwp-assegna-api-rest.php';
 
 /*
- * Activator Class is used for extension activation and deactivation 
+ * Activator Class is used for extension activation and deactivation
  */
 
 class MainWPAssegnaApiExtensionActivator {
