@@ -3,7 +3,7 @@
  * Plugin Name: MainWp Assegna API
  * Plugin URI: https://github.com/sajdoko/mainwp-assegna-api/
  * Description: This plugin makes possible the communication between Assegna and MainWp Dashboards.
- * Version: 1.0.6
+ * Version: 1.0.7
  * Author: Sajmir Doko
  * Author URI: https://github.com/sajdoko
  * GitHub URI: https://github.com/sajdoko/mainwp-assegna-api
