@@ -55,8 +55,6 @@ class MainWp_Assegna_Api_Rest {
     if ($this->is_api_key_enabled()) {
       // run API.
       add_action('rest_api_init', array(&$this, 'mainwp_assegna_api_register_routes'));
-    } else {
-      wp_die('run API');
     }
   }
 
